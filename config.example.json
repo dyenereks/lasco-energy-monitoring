@@ -1,0 +1,16 @@
+{
+  "reportEndpoint": "https://your-server.com/api/energy-report",
+  "reportApiKey": "optional-secret-key-for-your-endpoint",
+  "ratePerKwh": 9.0,
+  "webPort": 3000,
+  "logIntervalMinutes": 5,
+  "devices": [
+    {
+      "name": "Lasco Wifi Dual Aircon Plug",
+      "id": "PASTE_DEVICE_ID_FROM_devices.json",
+      "key": "PASTE_LOCAL_KEY_FROM_devices.json",
+      "ip": "192.168.68.100",
+      "version": "3.4"
+    }
+  ]
+}

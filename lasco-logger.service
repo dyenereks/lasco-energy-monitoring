@@ -1,0 +1,17 @@
+[Unit]
+Description=Lasco Energy Logger
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/lasco-pi-logger
+ExecStart=/usr/bin/node /home/pi/lasco-pi-logger/index.js
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/pi/lasco-pi-logger/logger.log
+StandardError=append:/home/pi/lasco-pi-logger/logger.log
+
+[Install]
+WantedBy=multi-user.target

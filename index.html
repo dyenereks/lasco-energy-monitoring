@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lasco Energy — Local</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0a0f; --bg2: #111118; --bg3: #1a1a24;
+      --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+      --text: #f0f0f8; --text2: #8888aa; --text3: #55556a;
+      --accent: #00e5a0; --danger: #ff4d6a; --warn: #ffb340; --blue: #4d9fff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 40px 40px; pointer-events: none; z-index: 0;
+    }
+    .wrap { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto; padding: 2rem 1.2rem 4rem; }
+    header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+    .brand h1 { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1; }
+    .brand h1 span { color: var(--accent); }
+    .brand p { font-size: 10px; color: var(--text3); margin-top: 6px; letter-spacing: 0.1em; text-transform: uppercase; }
+    .badge-local { font-size: 10px; padding: 4px 10px; border-radius: 20px; background: rgba(0,229,160,0.1); color: var(--accent); border: 1px solid rgba(0,229,160,0.25); letter-spacing: 0.06em; }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .live-dot { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--text2); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); }
+    .dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s ease infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .refresh-btn { background: var(--bg3); border: 1px solid var(--border2); color: var(--text2); font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 14px; border-radius: 6px; cursor: pointer; letter-spacing: 0.06em; transition: all 0.2s; }
+    .refresh-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .refresh-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+    .summary-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.1rem 1.2rem; }
+    .summary-card .label { font-size: 10px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 9px; }
+    .summary-card .value { font-family: 'Syne', sans-serif; font-size: 1.8rem; font-weight: 700; line-height: 1; }
+    .summary-card .value.accent { color: var(--accent); }
+    .summary-card .value.warn { color: var(--warn); }
+    .summary-card .value.blue { color: var(--blue); }
+    .summary-card .unit { font-size: 10px; color: var(--text3); margin-top: 5px; }
+    .report-status { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 0.7rem 1rem; font-size: 11px; color: var(--text2); margin-bottom: 1.5rem; }
+    .report-status span { color: var(--text); }
+    .section-label { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+    .devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; margin-bottom: 2.5rem; }
+    .device-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 1.3rem 1.4rem; transition: all 0.2s; animation: fadeIn 0.4s ease both; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+    .device-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .device-card.offline { opacity: 0.65; }
+    .device-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.1rem; }
+    .device-name { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 600; flex: 1; padding-right: 10px; }
+    .status-badge { font-size: 10px; padding: 3px 9px; border-radius: 20px; letter-spacing: 0.05em; white-space: nowrap; }
+    .status-on { background: rgba(0,229,160,0.1); color: var(--accent); border: 1px solid rgba(0,229,160,0.2); }
+    .status-off { background: rgba(255,77,106,0.1); color: var(--danger); border: 1px solid rgba(255,77,106,0.2); }
+    .plug-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+    .stat { background: var(--bg3); border-radius: 8px; padding: 10px 12px; }
+    .stat-label { font-size: 9px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 5px; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 1.25rem; font-weight: 600; }
+    .stat-value.green { color: var(--accent); } .stat-value.blue { color: var(--blue); } .stat-value.warn { color: var(--warn); }
+    .stat-unit { font-size: 10px; color: var(--text3); margin-top: 2px; }
+    .sockets { display: flex; gap: 8px; }
+    .socket { flex: 1; display: flex; align-items: center; gap: 7px; background: var(--bg3); border-radius: 8px; padding: 8px 10px; font-size: 11px; color: var(--text2); }
+    .socket-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--text3); }
+    .socket-dot.on { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+    .socket-dot.off { background: var(--danger); }
+    .cost-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .cost-label { font-size: 10px; color: var(--text3); letter-spacing: 0.05em; }
+    .cost-value { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--warn); }
+    .err-text { font-size: 11px; color: var(--danger); margin-top: 6px; }
+    .loading { text-align: center; padding: 4rem 0; color: var(--text3); font-size: 12px; letter-spacing: 0.1em; }
+    .spinner { width: 28px; height: 28px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .updated { font-size: 10px; color: var(--text3); text-align: right; margin-top: 1rem; letter-spacing: 0.05em; }
+    /* History controls */
+    .history-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 1rem; }
+    .ctrl { display: flex; flex-direction: column; gap: 4px; }
+    .ctrl label { font-size: 9px; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; }
+    select, input[type=date] { background: var(--bg3); border: 1px solid var(--border2); color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; padding: 7px 10px; border-radius: 6px; }
+    .toggle-group { display: flex; gap: 0; border: 1px solid var(--border2); border-radius: 6px; overflow: hidden; }
+    .toggle-group button { background: var(--bg3); border: none; color: var(--text2); font-family: 'DM Mono', monospace; font-size: 11px; padding: 7px 14px; cursor: pointer; letter-spacing: 0.05em; }
+    .toggle-group button.active { background: var(--accent); color: #002419; font-weight: 500; }
+    .chart-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: 1.3rem 1.4rem; position: relative; min-height: 320px; }
+    .chart-summary { display: flex; gap: 24px; margin-bottom: 1rem; flex-wrap: wrap; }
+    .chart-summary .item .num { font-family: 'Syne', sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+    .chart-summary .item .lbl { font-size: 10px; color: var(--text3); letter-spacing: 0.06em; }
+    .chart-empty { text-align: center; padding: 3rem 0; color: var(--text3); font-size: 12px; }
+    .export-btn { background: var(--bg3); border: 1px solid var(--border2); color: var(--accent); font-family: 'DM Mono', monospace; font-size: 12px; padding: 7px 14px; border-radius: 6px; cursor: pointer; letter-spacing: 0.04em; transition: all 0.2s; white-space: nowrap; }
+    .export-btn:hover { border-color: var(--accent); background: rgba(0,229,160,0.1); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>LASCO <span>ENERGY</span></h1>
+      <p>Local monitor · Raspberry Pi</p>
+    </div>
+    <div class="header-right">
+      <span class="badge-local">● LAN — no cloud</span>
+      <div class="live-dot"><span class="dot" id="live-dot"></span><span id="live-label">…</span></div>
+      <button class="refresh-btn" id="refresh-btn" onclick="loadLive()">↻ Refresh</button>
+    </div>
+  </header>
+
+  <div class="summary" id="summary">
+    <div class="summary-card"><div class="label">Total Power</div><div class="value accent" id="s-power">—</div><div class="unit">watts now</div></div>
+    <div class="summary-card"><div class="label">Cumulative Energy</div><div class="value blue" id="s-energy">—</div><div class="unit">kWh total</div></div>
+    <div class="summary-card"><div class="label">Est. Cost</div><div class="value warn" id="s-cost">—</div><div class="unit" id="s-rate">@ ₱9/kWh</div></div>
+    <div class="summary-card"><div class="label">Online</div><div class="value" id="s-online">—</div><div class="unit">of <span id="s-total">—</span> devices</div></div>
+  </div>
+
+  <div class="report-status" id="report-status">Hourly report: <span>—</span></div>
+
+  <div class="section-label">Live Devices</div>
+  <div class="devices" id="device-list">
+    <div class="loading"><div class="spinner"></div>polling devices over LAN…</div>
+  </div>
+
+  <div class="section-label">Usage History</div>
+  <div class="history-controls">
+    <div class="ctrl">
+      <label>Device</label>
+      <select id="hist-device" onchange="loadHistory()"></select>
+    </div>
+    <div class="ctrl">
+      <label>View</label>
+      <div class="toggle-group">
+        <button id="btn-hourly" class="active" onclick="setMode('hourly')">Hourly</button>
+        <button id="btn-daily" onclick="setMode('daily')">Daily</button>
+      </div>
+    </div>
+    <div class="ctrl" id="date-ctrl">
+      <label>Date</label>
+      <input type="date" id="hist-date" onchange="loadHistory()" />
+    </div>
+    <div class="ctrl" id="range-ctrl" style="display:none">
+      <label>Range</label>
+      <select id="hist-days" onchange="loadHistory()">
+        <option value="7">Last 7 days</option>
+        <option value="14" selected>Last 14 days</option>
+        <option value="30">Last 30 days</option>
+      </select>
+    </div>
+    <div class="ctrl" style="margin-left:auto">
+      <label>Export</label>
+      <button class="export-btn" onclick="exportCsv()">⬇ Download CSV</button>
+    </div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="chart-summary" id="chart-summary"></div>
+    <canvas id="historyChart" height="110"></canvas>
+    <div class="chart-empty" id="chart-empty" style="display:none">No history yet — data builds up as the logger runs.</div>
+  </div>
+
+  <div class="updated" id="updated-at"></div>
+</div>
+
+<script>
+  let mode = 'hourly';
+  let chart = null;
+
+  // ── LIVE ──
+  async function loadLive() {
+    const btn = document.getElementById('refresh-btn');
+    const dot = document.getElementById('live-dot');
+    const label = document.getElementById('live-label');
+    const list = document.getElementById('device-list');
+    btn.disabled = true; btn.textContent = '↻ Polling…';
+    dot.className = 'dot'; label.textContent = 'polling…';
+    try {
+      const res = await fetch('/api/live');
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      const s = data.summary;
+      document.getElementById('s-power').textContent  = s.totalPower + ' W';
+      document.getElementById('s-energy').textContent = s.totalEnergy + ' kWh';
+      document.getElementById('s-cost').textContent   = '₱' + s.totalCost;
+      document.getElementById('s-rate').textContent   = '@ ₱' + s.ratePerKwh + '/kWh';
+      document.getElementById('s-online').textContent = s.onlineCount;
+      document.getElementById('s-total').textContent  = s.totalCount;
+      document.getElementById('report-status').innerHTML = 'Hourly report: <span>' + s.reportStatus + '</span>';
+      list.innerHTML = data.devices.map((d, i) => deviceCard(d, i, s.ratePerKwh)).join('');
+      dot.className = 'dot live'; label.textContent = 'live';
+      document.getElementById('updated-at').textContent = 'Last polled: ' + new Date(s.updatedAt).toLocaleTimeString();
+    } catch (err) {
+      list.innerHTML = '<div class="loading" style="color:var(--danger)">⚠ ' + err.message + '</div>';
+      dot.className = 'dot'; label.textContent = 'error';
+    }
+    btn.disabled = false; btn.textContent = '↻ Refresh';
+  }
+
+  function deviceCard(d, i, rate) {
+    const delay = i * 0.08;
+    if (!d.online) {
+      return `<div class="device-card offline" style="animation-delay:${delay}s">
+        <div class="device-header"><div class="device-name">${d.name}</div><span class="status-badge status-off">offline</span></div>
+        <div class="err-text">${d.error || 'Device unreachable on LAN'}</div></div>`;
+    }
+    const cost = (d.energy_kwh * rate).toFixed(2);
+    return `<div class="device-card" style="animation-delay:${delay}s">
+      <div class="device-header"><div class="device-name">${d.name}</div><span class="status-badge status-on">online</span></div>
+      <div class="plug-stats">
+        <div class="stat"><div class="stat-label">Power</div><div class="stat-value green">${d.power_w.toFixed(1)}</div><div class="stat-unit">watts</div></div>
+        <div class="stat"><div class="stat-label">Voltage</div><div class="stat-value blue">${d.voltage_v.toFixed(1)}</div><div class="stat-unit">volts</div></div>
+        <div class="stat"><div class="stat-label">Current</div><div class="stat-value">${d.current_a.toFixed(2)}</div><div class="stat-unit">amps</div></div>
+        <div class="stat"><div class="stat-label">Energy</div><div class="stat-value warn">${d.energy_kwh.toFixed(2)}</div><div class="stat-unit">kWh total</div></div>
+      </div>
+      <div class="sockets">
+        <div class="socket"><span class="socket-dot ${d.switch1 ? 'on' : 'off'}"></span>Socket 1 — ${d.switch1 ? 'ON' : 'OFF'}</div>
+        <div class="socket"><span class="socket-dot ${d.switch2 ? 'on' : 'off'}"></span>Socket 2 — ${d.switch2 ? 'ON' : 'OFF'}</div>
+      </div>
+      <div class="cost-row"><span class="cost-label">Est. cost (cumulative)</span><span class="cost-value">₱${cost}</span></div>
+    </div>`;
+  }
+
+  // ── HISTORY ──
+  function setMode(m) {
+    mode = m;
+    document.getElementById('btn-hourly').classList.toggle('active', m === 'hourly');
+    document.getElementById('btn-daily').classList.toggle('active', m === 'daily');
+    document.getElementById('date-ctrl').style.display  = m === 'hourly' ? '' : 'none';
+    document.getElementById('range-ctrl').style.display = m === 'daily'  ? '' : 'none';
+    loadHistory();
+  }
+
+  async function loadDeviceList() {
+    const res = await fetch('/api/devices');
+    const devices = await res.json();
+    const sel = document.getElementById('hist-device');
+    sel.innerHTML = devices.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+  }
+
+  async function loadHistory() {
+    const deviceId = document.getElementById('hist-device').value;
+    if (!deviceId) return;
+    const rate = parseFloat(document.getElementById('s-rate').textContent.replace(/[^0-9.]/g, '')) || 9;
+
+    let url, labels, values, totalLabel;
+    if (mode === 'hourly') {
+      const date = document.getElementById('hist-date').value;
+      url = `/api/history/hourly?deviceId=${deviceId}&date=${date}`;
+    } else {
+      const days = document.getElementById('hist-days').value;
+      url = `/api/history/daily?deviceId=${deviceId}&days=${days}`;
+    }
+
+    const res = await fetch(url);
+    const data = await res.json();
+    const series = data.series || [];
+
+    const empty = document.getElementById('chart-empty');
+    if (series.length === 0) {
+      empty.style.display = 'block';
+      if (chart) { chart.destroy(); chart = null; }
+      document.getElementById('chart-summary').innerHTML = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    if (mode === 'hourly') {
+      labels = series.map(s => s.hour);
+    } else {
+      labels = series.map(s => s.day.slice(5)); // MM-DD
+    }
+    values = series.map(s => s.kwh);
+
+    const totalKwh = values.reduce((a, b) => a + b, 0);
+    const totalCost = totalKwh * (data.rate || rate);
+    const avg = totalKwh / values.length;
+
+    document.getElementById('chart-summary').innerHTML = `
+      <div class="item"><div class="num">${totalKwh.toFixed(2)}</div><div class="lbl">total kWh</div></div>
+      <div class="item"><div class="num">₱${totalCost.toFixed(2)}</div><div class="lbl">est. cost</div></div>
+      <div class="item"><div class="num">${avg.toFixed(2)}</div><div class="lbl">avg per ${mode === 'hourly' ? 'hour' : 'day'}</div></div>
+    `;
+
+    renderChart(labels, values);
+  }
+
+  function renderChart(labels, values) {
+    const ctx = document.getElementById('historyChart');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'kWh',
+          data: values,
+          backgroundColor: 'rgba(0,229,160,0.5)',
+          borderColor: '#00e5a0',
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888aa', font: { family: 'DM Mono', size: 10 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#8888aa', font: { family: 'DM Mono', size: 10 } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  // ── CSV EXPORT ──
+  function exportCsv() {
+    const deviceId = document.getElementById('hist-device').value;
+    // In daily mode, respect the selected range; otherwise default to 30 days
+    const days = mode === 'daily' ? document.getElementById('hist-days').value : 30;
+    const url = `/api/export?deviceId=${deviceId}&days=${days}`;
+    window.location.href = url; // triggers browser download
+  }
+
+  // ── INIT ──
+  (async function init() {
+    document.getElementById('hist-date').value = new Date().toISOString().slice(0, 10);
+    await loadDeviceList();
+    await loadLive();
+    await loadHistory();
+    setInterval(loadLive, 30000);
+  })();
+</script>
+</body>
+</html>
