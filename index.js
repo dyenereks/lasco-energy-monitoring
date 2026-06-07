@@ -31,7 +31,7 @@ const DPS = {
   current: '18',   // mA
   power:   '19',   // W x10
   voltage: '20',   // V x10
-  energy:  '26',   // kWh x100 (cumulative add_ele)
+  energy:  '17',   // kWh x100 (cumulative add_ele) — DPS 26 is 0 on this device
 };
 
 // ─── DATABASE SETUP ───────────────────────────────────────────────────────────
