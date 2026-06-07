@@ -90,6 +90,11 @@ async function readDevice(deviceCfg) {
     issueGetOnConnect: true,
   });
 
+  // TuyAPI emits 'error' on the socket separately from the promise rejection.
+  // Without this listener, a refused/dropped connection crashes the whole
+  // process (Unhandled 'error' event) and takes the dashboard down with it.
+  device.on('error', () => { /* handled by try/catch below */ });
+
   try {
     await device.find();
     await device.connect();
