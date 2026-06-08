@@ -240,7 +240,12 @@ app.get('/api/history/hourly', (req, res) => {
   for (const h of hours) {
     const cumulative = byHour[h];
     if (prev !== null) {
-      series.push({ hour: `${h}:00`, kwh: parseFloat((cumulative - prev).toFixed(3)) });
+      // Counter-reset guard: the device's cumulative counter can drop back to
+      // ~0 after a power-cycle / re-pair, which would make a raw diff negative.
+      // Treat that as a reset and count usage from zero (the post-reset value).
+      let kwh = cumulative - prev;
+      if (kwh < 0) kwh = cumulative;
+      series.push({ hour: `${h}:00`, kwh: parseFloat(kwh.toFixed(3)) });
     }
     prev = cumulative;
   }
@@ -276,7 +281,11 @@ app.get('/api/history/daily', (req, res) => {
   for (const day of daysSorted) {
     const cumulative = byDay[day];
     if (prev !== null) {
-      series.push({ day, kwh: parseFloat((cumulative - prev).toFixed(3)) });
+      // Counter-reset guard (see hourly): a negative diff means the device's
+      // cumulative counter reset, so count usage from zero (post-reset value).
+      let kwh = cumulative - prev;
+      if (kwh < 0) kwh = cumulative;
+      series.push({ day, kwh: parseFloat(kwh.toFixed(3)) });
     }
     prev = cumulative;
   }
