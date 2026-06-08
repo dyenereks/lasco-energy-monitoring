@@ -31,7 +31,7 @@ const DPS = {
   current: '18',   // mA
   power:   '19',   // W x10
   voltage: '20',   // V x10
-  energy:  '17',   // cumulative add_ele; raw, scale 3 → /1000 = kWh (DPS 26 is 0 here)
+  energy:  '17',   // add_ele = TODAY's energy; calibrated raw/10 = kWh (DPS 26 is 0 here)
 };
 
 // ─── DATABASE SETUP ───────────────────────────────────────────────────────────
@@ -111,7 +111,7 @@ async function readDevice(deviceCfg) {
       power_w:    (dps[DPS.power]   ?? 0) / 10,
       voltage_v:  (dps[DPS.voltage] ?? 0) / 10,
       current_a:  (dps[DPS.current] ?? 0) / 1000,
-      energy_kwh: (dps[DPS.energy]  ?? 0) / 1000,   // scale 3 per devices.json mapping
+      energy_kwh: (dps[DPS.energy]  ?? 0) / 10,   // raw/10 = kWh, calibrated vs Smart Life "Today"
       timestamp:  new Date().toISOString(),
     };
   } catch (err) {
