@@ -18,6 +18,11 @@ to a remote endpoint of your choice, **and** serves a local web dashboard with l
 | `package.json` | Dependencies |
 | `lasco-logger.service` | systemd service so it auto-starts and stays running |
 | `energy.db` | SQLite history database (auto-created on first run) |
+| `firebase-sync.js` | Optional cloud mirror → Firestore (history) + Realtime DB (live) |
+
+> ☁️ **Want the data on an online dashboard?** See [FIREBASE.md](FIREBASE.md) to mirror
+> recorded readings to **Firestore** and the live snapshot to **Realtime Database**.
+> It's opt-in — disabled by default.
 
 ---
 

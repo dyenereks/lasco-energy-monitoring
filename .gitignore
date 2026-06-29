@@ -1,6 +1,10 @@
 # Secrets / local config (contains device keys + API key)
 config.json
 
+# Firebase service account key (private credentials — NEVER commit)
+firebase-service-account.json
+*-firebase-adminsdk-*.json
+
 # SQLite history database (+ WAL/SHM sidecar files)
 energy.db
 energy.db-wal

@@ -4,6 +4,13 @@
   "ratePerKwh": 9.0,
   "webPort": 3000,
   "logIntervalMinutes": 5,
+  "firebase": {
+    "enabled": false,
+    "serviceAccountPath": "./firebase-service-account.json",
+    "databaseURL": "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+    "readingsCollection": "readings",
+    "livePath": "live"
+  },
   "devices": [
     {
       "name": "Lasco Wifi Dual Aircon Plug",

@@ -14,6 +14,7 @@ const Database = require('better-sqlite3');
 const fs       = require('fs');
 const path     = require('path');
 const cron     = require('node-cron');
+const firebase = require('./firebase-sync');   // optional cloud mirror (no-op if disabled)
 
 // ─── LOAD CONFIG ────────────────────────────────────────────────────────────
 const config   = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
@@ -73,6 +74,10 @@ function storeReadings(readings) {
     }
   });
   tx(readings);
+
+  // Mirror the recorded readings to Firestore (history). No-op if Firebase is
+  // disabled; fire-and-forget so a slow/unreachable cloud never blocks logging.
+  firebase.pushReadings(readings);
 }
 
 // ─── IN-MEMORY STATE ──────────────────────────────────────────────────────────
@@ -136,7 +141,32 @@ async function readAllDevices() {
   }
   lastReadings = results;
   lastPollTime = new Date().toISOString();
+
+  // Mirror the current snapshot to Realtime DB so the online dashboard sees
+  // live data. No-op if Firebase is disabled.
+  firebase.updateLive(buildLivePayload(results));
   return results;
+}
+
+// Shape the live payload once, shared by the local /api/live response and the
+// Realtime DB mirror so both always match.
+function buildLivePayload(readings) {
+  const plugs       = readings.filter(d => d.online);
+  const totalPower  = plugs.reduce((s, d) => s + (d.power_w || 0), 0);
+  const totalEnergy = plugs.reduce((s, d) => s + (d.energy_kwh || 0), 0);
+  return {
+    devices: readings,
+    summary: {
+      totalPower:   totalPower.toFixed(1),
+      totalEnergy:  totalEnergy.toFixed(3),
+      totalCost:    (totalEnergy * RATE).toFixed(2),
+      onlineCount:  readings.filter(d => d.online).length,
+      totalCount:   readings.length,
+      ratePerKwh:   RATE,
+      reportStatus: lastReportStatus,
+      updatedAt:    lastPollTime,
+    },
+  };
 }
 
 // ─── REMOTE REPORT ──────────────────────────────────────────────────────────
@@ -186,23 +216,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/live', async (req, res) => {
   try {
     const readings = await readAllDevices();
-    const plugs       = readings.filter(d => d.online);
-    const totalPower  = plugs.reduce((s, d) => s + (d.power_w || 0), 0);
-    const totalEnergy = plugs.reduce((s, d) => s + (d.energy_kwh || 0), 0);
-
-    res.json({
-      devices: readings,
-      summary: {
-        totalPower:   totalPower.toFixed(1),
-        totalEnergy:  totalEnergy.toFixed(3),
-        totalCost:    (totalEnergy * RATE).toFixed(2),
-        onlineCount:  readings.filter(d => d.online).length,
-        totalCount:   readings.length,
-        ratePerKwh:   RATE,
-        reportStatus: lastReportStatus,
-        updatedAt:    lastPollTime,
-      },
-    });
+    res.json(buildLivePayload(readings));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -397,7 +411,10 @@ console.log(`   Devices:    ${DEVICES.length}`);
 console.log(`   Endpoint:   ${ENDPOINT}`);
 console.log(`   DB logging: every ${LOG_EVERY} min`);
 console.log(`   Reporting:  hourly`);
-console.log(`   Dashboard:  port ${WEB_PORT}\n`);
+console.log(`   Dashboard:  port ${WEB_PORT}`);
+
+firebase.init(config.firebase);   // logs enabled/disabled status
+console.log('');
 
 logJob(); // run once at startup
 
